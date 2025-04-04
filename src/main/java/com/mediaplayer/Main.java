@@ -7,6 +7,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -52,7 +53,7 @@ public class Main extends Application {
 
         setupFullscreenBehavior(scene, primaryStage);
         setupMediaViewSizeBinding(scene);
-
+        setupEnterKeyControl(scene);
         primaryStage.setTitle("RythmX");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -71,6 +72,26 @@ public class Main extends Application {
         return String.format("%02d:%02d", minutes, seconds);
     }
 
+    private void setupEnterKeyControl(Scene scene) {
+        scene.setOnKeyPressed(event -> {
+            if (Objects.requireNonNull(event.getCode()) == KeyCode.ENTER) {
+                togglePlayPause();
+            }
+        });
+    }
+
+    private void togglePlayPause() {
+        if (mediaPlayer != null) {
+            if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+                mediaPlayer.pause();
+                playPauseButton.setText("▶");
+            } else {
+                mediaPlayer.play();
+                playPauseButton.setText("⏸");
+            }
+        }
+    }
+
     private void setupFullscreenBehavior(Scene scene, Stage stage) {
         stage.fullScreenProperty().addListener((obs, oldVal, newVal) -> {
             isFullscreen = newVal;
@@ -83,7 +104,6 @@ public class Main extends Application {
                 controlBar.setVisible(true);
             }
         });
-
         scene.setOnMouseMoved(e -> {
             if (isFullscreen) {
                 showTemporaryControls();
@@ -129,43 +149,105 @@ public class Main extends Application {
         return topBar;
     }
 
-    private HBox createControlBar() {
-        HBox controlBar = new HBox(15);
-        controlBar.setPadding(new Insets(15));
-        controlBar.setAlignment(Pos.CENTER);
-        controlBar.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
+   private HBox createControlBar() {
+       HBox controlBar = new HBox(15);
+       controlBar.setPadding(new Insets(15));
+       controlBar.setAlignment(Pos.CENTER);
+       controlBar.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-        playPauseButton = createIconButton("▶");
-        Button prevButton = createIconButton("⏮");
-        Button nextButton = createIconButton("⏭");
-        Button rewindButton = createIconButton("⏪");
-        Button forwardButton = createIconButton("⏩");
+       playPauseButton = createIconButton("▶");
+       Button prevButton = createIconButton("⏮");
+       Button nextButton = createIconButton("⏭");
+       Button rewindButton = createIconButton("⏪");
+       Button forwardButton = createIconButton("⏩");
 
-        progressSlider = new Slider();
-        progressSlider.setPrefWidth(400);
+       progressSlider = new Slider();
+       progressSlider.setPrefWidth(400);
 
-        currentTimeLabel = new Label("00:00");
-        totalTimeLabel = new Label("00:00");
+       currentTimeLabel = new Label("00:00");
+       totalTimeLabel = new Label("00:00");
 
-        progressSlider.setOnMousePressed(e -> {
-            if(mediaPlayer != null) mediaPlayer.pause();
-        });
+       // Speed Control Slider
+       Slider speedSlider = new Slider(0.5, 2.0, 1.0);
+       speedSlider.setBlockIncrement(0.25);
+       speedSlider.setPrefWidth(150);
+       speedSlider.setShowTickLabels(true);
+       speedSlider.setShowTickMarks(true);
+       speedSlider.setMajorTickUnit(0.5);
+       speedSlider.setMinorTickCount(1);
 
-        progressSlider.setOnMouseReleased(e -> {
-            if(mediaPlayer != null) {
-                mediaPlayer.seek(Duration.seconds(progressSlider.getValue()));
-                mediaPlayer.play();
-            }
-        });
+       // Action for Play/Pause Button
+       playPauseButton.setOnAction(e -> {
+           if (mediaPlayer != null) {
+               if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+                   mediaPlayer.pause();
+                   playPauseButton.setText("▶");
+               } else {
+                   mediaPlayer.play();
+                   playPauseButton.setText("⏸");
+               }
+           }
+       });
 
-        controlBar.getChildren().addAll(
-                prevButton, rewindButton, playPauseButton,
-                forwardButton, nextButton, currentTimeLabel,
-                progressSlider, totalTimeLabel
-        );
+       // Action for Rewind Button (-10 seconds)
+       rewindButton.setOnAction(e -> {
+           if (mediaPlayer != null) {
+               Duration currentTime = mediaPlayer.getCurrentTime();
+               mediaPlayer.seek(currentTime.subtract(Duration.seconds(10)));
+           }
+       });
 
-        return controlBar;
-    }
+       // Action for Forward Button (+10 seconds)
+       forwardButton.setOnAction(e -> {
+           if (mediaPlayer != null) {
+               Duration currentTime = mediaPlayer.getCurrentTime();
+               mediaPlayer.seek(currentTime.add(Duration.seconds(10)));
+           }
+       });
+
+       // Action for Speed Slider
+       speedSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+           if (mediaPlayer != null) {
+               mediaPlayer.setRate(newVal.doubleValue());
+           }
+       });
+
+       // Action for Progress Slider
+       progressSlider.setOnMousePressed(e -> {
+           if (mediaPlayer != null) mediaPlayer.pause();
+       });
+
+       progressSlider.setOnMouseReleased(e -> {
+           if (mediaPlayer != null) {
+               mediaPlayer.seek(Duration.seconds(progressSlider.getValue()));
+               mediaPlayer.play();
+           }
+       });
+
+       if (mediaPlayer != null) {
+           mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
+               if (!progressSlider.isValueChanging()) {
+                   progressSlider.setValue(newTime.toSeconds());
+                   currentTimeLabel.setText(formatTime(newTime));
+               }
+           });
+
+           mediaPlayer.setOnReady(() -> {
+               Duration total = mediaPlayer.getMedia().getDuration();
+               progressSlider.setMax(total.toSeconds());
+               totalTimeLabel.setText(formatTime(total));
+           });
+       }
+
+       controlBar.getChildren().addAll(
+               prevButton, rewindButton, playPauseButton,
+               forwardButton, nextButton, currentTimeLabel,
+               progressSlider, totalTimeLabel, new Label("Speed"), speedSlider
+       );
+
+       return controlBar;
+   }
+
 
     private Button createStyledButton(String text) {
         Button btn = new Button(text);

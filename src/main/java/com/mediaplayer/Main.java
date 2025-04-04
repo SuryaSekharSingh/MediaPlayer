@@ -294,7 +294,6 @@ public class Main extends Application {
             isMuted = !isMuted;
         }
     }
-
     public static void main(String[] args) {
         launch(args);
     }

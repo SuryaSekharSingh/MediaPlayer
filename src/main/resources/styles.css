@@ -28,3 +28,29 @@
 .label {
     -fx-text-fill: white;
 }
+
+.custom-slider .track {
+    -fx-background-color: rgba(255, 255, 255, 0.637);
+    -fx-background-insets: 0;
+    -fx-background-radius: 1px;
+    -fx-pref-height: 4px;
+}
+
+.custom-slider:hover .track {
+    -fx-effect: dropshadow(gaussian, rgb(238, 138, 75), 4, 0.5, 0, 0);
+}
+
+.custom-slider:hover .thumb {
+    -fx-effect: dropshadow(gaussian, rgb(238, 138, 75), 3, 0.5, 0, 0);
+}
+
+.custom-slider .thumb {
+    -fx-pref-width: 15px;
+    -fx-pref-height: 15px;
+    -fx-background-color: rgb(238, 138, 75); 
+    -fx-border-color: rgb(62, 35, 18);
+    -fx-border-width: 4px;
+    -fx-border-radius: 50%;
+    -fx-background-radius: 50%;
+}
+

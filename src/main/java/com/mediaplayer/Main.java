@@ -3,6 +3,7 @@ package com.mediaplayer;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -17,6 +18,8 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import java.io.File;
 import java.util.Objects;
+
+import javax.swing.JLabel;
 
 public class Main extends Application {
     private MediaPlayer mediaPlayer;
@@ -47,9 +50,11 @@ public class Main extends Application {
         root.getChildren().addAll(mediaView, mainPane);
 
         Scene scene = new Scene(root, 1000, 700);
-        String css = getClass().getResource("/styles.css") != null ?
-                Objects.requireNonNull(getClass().getResource("/styles.css")).toExternalForm() : null;
-        if(css != null) scene.getStylesheets().add(css);
+        String css = getClass().getResource("/styles.css") != null
+                ? Objects.requireNonNull(getClass().getResource("/styles.css")).toExternalForm()
+                : null;
+        if (css != null)
+            scene.getStylesheets().add(css);
 
         setupFullscreenBehavior(scene, primaryStage);
         setupMediaViewSizeBinding(scene);
@@ -98,7 +103,8 @@ public class Main extends Application {
             if (newVal) {
                 topBar.setVisible(false);
                 controlBar.setVisible(false);
-                if (mediaPlayer != null) mediaPlayer.play();
+                if (mediaPlayer != null)
+                    mediaPlayer.play();
             } else {
                 topBar.setVisible(true);
                 controlBar.setVisible(true);
@@ -113,12 +119,12 @@ public class Main extends Application {
 
     private void showTemporaryControls() {
         controlBar.setVisible(true);
-        if (hideControlsTimeline != null) hideControlsTimeline.stop();
+        if (hideControlsTimeline != null)
+            hideControlsTimeline.stop();
 
         hideControlsTimeline = new Timeline(new KeyFrame(
                 Duration.seconds(5),
-                ae -> controlBar.setVisible(false)
-        ));
+                ae -> controlBar.setVisible(false)));
         hideControlsTimeline.play();
     }
 
@@ -135,125 +141,197 @@ public class Main extends Application {
         Button openButton = createStyledButton("File");
         Button fullscreenButton = createStyledButton("Fullscreen");
         Button muteButton = createStyledButton("Mute");
-        volumeSlider = new Slider(0, 100, 50);
-        volumeSlider.setPrefWidth(100);
 
         openButton.setOnAction(e -> openMediaFile(stage));
         fullscreenButton.setOnAction(e -> stage.setFullScreen(!stage.isFullScreen()));
         muteButton.setOnAction(e -> toggleMute());
-        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if(mediaPlayer != null) mediaPlayer.setVolume(newVal.doubleValue() / 100);
-        });
 
-        topBar.getChildren().addAll(openButton, fullscreenButton, muteButton, volumeSlider);
+        topBar.getChildren().addAll(openButton, fullscreenButton, muteButton);
         return topBar;
     }
 
-   private HBox createControlBar() {
-       HBox controlBar = new HBox(15);
-       controlBar.setPadding(new Insets(15));
-       controlBar.setAlignment(Pos.CENTER);
-       controlBar.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
+    private HBox createControlBar() {
 
-       playPauseButton = createIconButton("▶");
-       Button prevButton = createIconButton("⏮");
-       Button nextButton = createIconButton("⏭");
-       Button rewindButton = createIconButton("⏪");
-       Button forwardButton = createIconButton("⏩");
+        HBox timeButtons = new HBox(10);
+        timeButtons.setPadding(new Insets(0));
+        timeButtons.setAlignment(Pos.CENTER);
+        timeButtons.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-       progressSlider = new Slider();
-       progressSlider.setPrefWidth(400);
+        HBox progressBox = new HBox(6);
+        progressBox.setPadding(new Insets(15));
+        progressBox.setAlignment(Pos.CENTER);
+        progressBox.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-       currentTimeLabel = new Label("00:00");
-       totalTimeLabel = new Label("00:00");
+        VBox timeBox = new VBox(6);
+        timeBox.setPadding(new Insets(0));
+        timeBox.setAlignment(Pos.CENTER);
+        timeBox.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-       // Speed Control Slider
-       Slider speedSlider = new Slider(0.5, 2.0, 1.0);
-       speedSlider.setBlockIncrement(0.25);
-       speedSlider.setPrefWidth(150);
-       speedSlider.setShowTickLabels(true);
-       speedSlider.setShowTickMarks(true);
-       speedSlider.setMajorTickUnit(0.5);
-       speedSlider.setMinorTickCount(1);
+        VBox volumeBox = new VBox(10);
+        timeBox.setPadding(new Insets(0));
+        timeBox.setAlignment(Pos.TOP_CENTER);
+        timeBox.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-       // Action for Play/Pause Button
-       playPauseButton.setOnAction(e -> {
-           if (mediaPlayer != null) {
-               if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-                   mediaPlayer.pause();
-                   playPauseButton.setText("▶");
-               } else {
-                   mediaPlayer.play();
-                   playPauseButton.setText("⏸");
-               }
-           }
-       });
+        VBox speedBox = new VBox(5);
+        timeBox.setPadding(new Insets(0));
+        timeBox.setAlignment(Pos.TOP_CENTER);
+        timeBox.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-       // Action for Rewind Button (-10 seconds)
-       rewindButton.setOnAction(e -> {
-           if (mediaPlayer != null) {
-               Duration currentTime = mediaPlayer.getCurrentTime();
-               mediaPlayer.seek(currentTime.subtract(Duration.seconds(10)));
-           }
-       });
+        HBox controlBar = new HBox(15);
+        controlBar.setPadding(new Insets(15));
+        controlBar.setAlignment(Pos.CENTER);
+        controlBar.setStyle("-fx-background-color: rgba(60, 60, 60, 0.7);");
 
-       // Action for Forward Button (+10 seconds)
-       forwardButton.setOnAction(e -> {
-           if (mediaPlayer != null) {
-               Duration currentTime = mediaPlayer.getCurrentTime();
-               mediaPlayer.seek(currentTime.add(Duration.seconds(10)));
-           }
-       });
+        playPauseButton = createIconButton("▶");
+        Button prevButton = createIconButton("⏮");
+        Button nextButton = createIconButton("⏭");
+        Button rewindButton = createIconButton("⏪");
+        Button forwardButton = createIconButton("⏩");
 
-       // Action for Speed Slider
-       speedSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-           if (mediaPlayer != null) {
-               mediaPlayer.setRate(newVal.doubleValue());
-           }
-       });
+        progressSlider = new Slider();
+        progressSlider.setPrefWidth(400);
 
-       // Action for Progress Slider
-       progressSlider.setOnMousePressed(e -> {
-           if (mediaPlayer != null) mediaPlayer.pause();
-       });
+        progressSlider.getStyleClass().add("custom-slider");
 
-       progressSlider.setOnMouseReleased(e -> {
-           if (mediaPlayer != null) {
-               mediaPlayer.seek(Duration.seconds(progressSlider.getValue()));
-               mediaPlayer.play();
-           }
-       });
+        progressSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            double percent = (newVal.doubleValue() - progressSlider.getMin()) /
+                    (progressSlider.getMax() - progressSlider.getMin()) * 100;
 
-       if (mediaPlayer != null) {
-           mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
-               if (!progressSlider.isValueChanging()) {
-                   progressSlider.setValue(newTime.toSeconds());
-                   currentTimeLabel.setText(formatTime(newTime));
-               }
-           });
+            progressSlider.lookup(".track").setStyle(
+                    "-fx-background-color: linear-gradient(to right,rgb(238, 138, 75) " + percent + "%, #ddd " + percent
+                            + "%);");
+        });
 
-           mediaPlayer.setOnReady(() -> {
-               Duration total = mediaPlayer.getMedia().getDuration();
-               progressSlider.setMax(total.toSeconds());
-               totalTimeLabel.setText(formatTime(total));
-           });
-       }
+        currentTimeLabel = new Label("00:00");
+        totalTimeLabel = new Label("00:00");
 
-       controlBar.getChildren().addAll(
-               prevButton, rewindButton, playPauseButton,
-               forwardButton, nextButton, currentTimeLabel,
-               progressSlider, totalTimeLabel, new Label("Speed"), speedSlider
-       );
+        // Speed Control Slider
+        Slider speedSlider = new Slider(0.5, 2.0, 1.0);
+        speedSlider.setBlockIncrement(0.25);
+        speedSlider.setPrefWidth(150);
+        speedSlider.setShowTickLabels(true);
+        speedSlider.setShowTickMarks(true);
+        speedSlider.setMajorTickUnit(0.5);
+        speedSlider.setMinorTickCount(1);
+        speedSlider.getStyleClass().add("custom-slider");
 
-       return controlBar;
-   }
+        speedSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            updateSliderTrackFill(speedSlider);
+        });
+        
 
+        Platform.runLater(() -> updateSliderTrackFill(speedSlider));
+
+        speedSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            double percent = (newVal.doubleValue() - speedSlider.getMin()) /
+                    (speedSlider.getMax() - speedSlider.getMin()) * 100;
+
+            speedSlider.lookup(".track").setStyle(
+                    "-fx-background-color: linear-gradient(to right, rgb(238, 138, 75) " + percent + "%, rgba(255, 255, 255, 0.637) "
+                            + percent + "%);");
+        });
+
+        // Action for Play/Pause Button
+        playPauseButton.setOnAction(e -> {
+            if (mediaPlayer != null) {
+                if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+                    mediaPlayer.pause();
+                    playPauseButton.setText("▶");
+                } else {
+                    mediaPlayer.play();
+                    playPauseButton.setText("⏸");
+                }
+            }
+        });
+
+        // Action for Rewind Button (-10 seconds)
+        rewindButton.setOnAction(e -> {
+            if (mediaPlayer != null) {
+                Duration currentTime = mediaPlayer.getCurrentTime();
+                mediaPlayer.seek(currentTime.subtract(Duration.seconds(10)));
+            }
+        });
+
+        // Action for Forward Button (+10 seconds)
+        forwardButton.setOnAction(e -> {
+            if (mediaPlayer != null) {
+                Duration currentTime = mediaPlayer.getCurrentTime();
+                mediaPlayer.seek(currentTime.add(Duration.seconds(10)));
+            }
+        });
+
+        // Action for Speed Slider
+        speedSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (mediaPlayer != null) {
+                mediaPlayer.setRate(newVal.doubleValue());
+            }
+        });
+
+        // Action for Progress Slider
+        progressSlider.setOnMousePressed(e -> {
+            if (mediaPlayer != null)
+                mediaPlayer.pause();
+        });
+
+        progressSlider.setOnMouseReleased(e -> {
+            if (mediaPlayer != null) {
+                mediaPlayer.seek(Duration.seconds(progressSlider.getValue()));
+                mediaPlayer.play();
+            }
+        });
+
+        if (mediaPlayer != null) {
+            mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
+                if (!progressSlider.isValueChanging()) {
+                    progressSlider.setValue(newTime.toSeconds());
+                    currentTimeLabel.setText(formatTime(newTime));
+                }
+            });
+
+            mediaPlayer.setOnReady(() -> {
+                Duration total = mediaPlayer.getMedia().getDuration();
+                progressSlider.setMax(total.toSeconds());
+                totalTimeLabel.setText(formatTime(total));
+            });
+        }
+
+        volumeSlider = new Slider(0, 100, 50);
+        volumeSlider.setPrefWidth(100);
+
+        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (mediaPlayer != null)
+                mediaPlayer.setVolume(newVal.doubleValue() / 100);
+        });
+
+        progressBox.getChildren().addAll(currentTimeLabel,
+                progressSlider, totalTimeLabel);
+
+        timeButtons.getChildren().addAll(prevButton, rewindButton, playPauseButton,
+                forwardButton, nextButton);
+
+        timeBox.getChildren().addAll(progressBox, timeButtons);
+
+        Label volumeLabel = new Label("Volume");
+        volumeLabel.setPadding(new Insets(0, 0, 0, 30));
+        volumeBox.getChildren().addAll( volumeSlider, volumeLabel);
+
+        Label speedLabel = new Label("Speed");
+        speedLabel.setPadding(new Insets(0, 0, 0, 50));
+        speedBox.getChildren().addAll( speedSlider, speedLabel);
+
+        controlBar.getChildren().addAll(
+                timeBox, volumeBox, speedBox );
+
+        return controlBar;
+    }
 
     private Button createStyledButton(String text) {
         Button btn = new Button(text);
         btn.setStyle("-fx-background-color:  #2b2b2b; -fx-text-fill: white; -fx-padding: 2 4; ");
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color:rgba(75, 74, 74, 0.44); -fx-text-fill: white; -fx-padding: 2 4; -fx-font-weight: bold;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #2b2b2b; -fx-text-fill: white; -fx-padding: 2 4;"));
+        btn.setOnMouseEntered(e -> btn.setStyle(
+                "-fx-background-color:rgba(75, 74, 74, 0.44); -fx-text-fill: white; -fx-padding: 2 4; -fx-font-weight: bold;"));
+        btn.setOnMouseExited(
+                e -> btn.setStyle("-fx-background-color: #2b2b2b; -fx-text-fill: white; -fx-padding: 2 4;"));
         return btn;
     }
 
@@ -261,7 +339,8 @@ public class Main extends Application {
         File file = new FileChooser().showOpenDialog(stage);
         if (file != null) {
             Media media = new Media(file.toURI().toString());
-            if(mediaPlayer != null) mediaPlayer.dispose();
+            if (mediaPlayer != null)
+                mediaPlayer.dispose();
 
             mediaPlayer = new MediaPlayer(media);
             mediaView.setMediaPlayer(mediaPlayer);
@@ -282,8 +361,8 @@ public class Main extends Application {
     }
 
     private void toggleMute() {
-        if(mediaPlayer != null) {
-            if(isMuted) {
+        if (mediaPlayer != null) {
+            if (isMuted) {
                 mediaPlayer.setVolume(savedVolume);
                 volumeSlider.setValue(savedVolume * 100);
             } else {
@@ -294,6 +373,23 @@ public class Main extends Application {
             isMuted = !isMuted;
         }
     }
+
+    private void updateSliderTrackFill(Slider slider) {
+        double min = slider.getMin();
+        double max = slider.getMax();
+        double value = slider.getValue();
+        double percent = (value - min) / (max - min) * 100;
+    
+        // Lookup track and apply gradient fill
+        Region track = (Region) slider.lookup(".track");
+        if (track != null) {
+            track.setStyle(
+                "-fx-background-color: linear-gradient(to right, rgb(238, 138, 75) " + percent + "%, rgba(255, 255, 255, 0.637) " + percent + "%);"
+            );
+        }
+    }
+    
+
     public static void main(String[] args) {
         launch(args);
     }

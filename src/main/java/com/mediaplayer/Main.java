@@ -251,9 +251,9 @@ public class Main extends Application {
 
     private Button createStyledButton(String text) {
         Button btn = new Button(text);
-        btn.setStyle("-fx-background-color: #4a4a4a; -fx-text-fill: white; -fx-padding: 8 15;");
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #5a5a5a; -fx-text-fill: white;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #4a4a4a; -fx-text-fill: white;"));
+        btn.setStyle("-fx-background-color:  #2b2b2b; -fx-text-fill: white; -fx-padding: 2 4; ");
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color:rgba(75, 74, 74, 0.44); -fx-text-fill: white; -fx-padding: 2 4; -fx-font-weight: bold;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #2b2b2b; -fx-text-fill: white; -fx-padding: 2 4;"));
         return btn;
     }
 
